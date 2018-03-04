@@ -65,7 +65,7 @@
         const ADD_GOAL = "ADD_GOAL";
         const REMOVE_GOAL = "REMOVE_GOAL";
 
-        function checkAndDispatch(store, action) {
+        const checker = (store) => (next) => (action) => {
             if (
                 action.type === ADD_TODO &&
                 action.todo.name.toLowerCase().indexOf('bitcoin') !== -1
@@ -80,32 +80,8 @@
                 return alert("Nope that's a bad idea");
             }
 
-            return store.dispatch(action)
+            return next(action)
         }
-
-        function checker(store) {
-            return function (next) {
-                return function (action) {
-                    //here is where our middleware code is
-                    if (
-                        action.type === ADD_TODO &&
-                        action.todo.name.toLowerCase().indexOf('bitcoin') !== -1
-                    ) {
-                        return alert("Nope that's a bad idea");
-                    }
-
-                    if (
-                        action.type === ADD_GOAL &&
-                        action.goal.name.toLowerCase().indexOf('bitcoin') !== -1
-                    ) {
-                        return alert("Nope that's a bad idea");
-                    }
-
-                    return next(action)
-                }
-            }
-        }
-
 
         function todos(state = [], action) {
             switch (action.type) {
