@@ -217,7 +217,14 @@
         function List(props) {
             return (
                 <ul>
-                    <li>LIST</li>
+                    {props.items.map((item) => (
+                        <li key={item.id}>
+                            <span>
+                            {item.name}
+                            </span>
+                            <button onClick={() => props.remove(item)}>X</button>
+                        </li>
+                    ))}
                 </ul>
             )
         }
@@ -233,8 +240,12 @@
                     name,
                     complete: false
                 }))
-                
             }
+
+            removeItem = (todo) => {
+                this.props.store.dispatch(removeTodoAction(todo.id))
+            }
+
             render() {
                 return (
                     <div>
@@ -244,7 +255,7 @@
                         ref={(input) => this.input = input}
                         />
                         <button onClick={this.addItem}>Add Todo</button>
-                        <List />
+                        <List remove={this.removeItem} items={this.props.todos}/>
                     </div>
                 )
             }
@@ -263,6 +274,10 @@
                     name,
                 }))
             }
+            
+            removeItem = (goal) => {
+                this.props.store.dispatch(removeGoalAction(goal.id))
+            }
 
             render() {
                 return (
@@ -274,18 +289,26 @@
                             ref={(input) => this.input = input}
                             />
                             <button onClick={this.addItem}>Add Goal</button>
-                        <List />
+                        <List remove={this.removeItem} items={this.props.goals}/>
                     </div>
                 )
             }
         }
     
         class App extends React.Component {
+            componentDidMount () {
+                const { store } = this.props
+                store.subscribe(() => this.forceUpdate())
+            }
+
             render() {
+                const { store } = this.props
+                const { todos, goals } = store.getState()
+
                 return (
                     <div>
-                        <Todos store={this.props.store} />
-                        <Goals store={this.props.store}/>
+                        <Todos todos={todos} store={store} />
+                        <Goals goals={goals} store={store}/>
                     </div>
                 )
             }
