@@ -25,6 +25,7 @@
         const ADD_GOAL = "ADD_GOAL";
         const REMOVE_GOAL = "REMOVE_GOAL";
         const RECEIVE_DATA = 'RECEIVE_DATA'
+        const UPDATE_ID = 'UPDATE_ID'
 
         function addTodoAction(todo) {
             return {
@@ -67,6 +68,25 @@
                 type: REMOVE_GOAL,
                 id
             }
+        }
+
+        function handleDeleteTodo(todo) {
+            return (dispatch) => {
+                dispatch(removeTodoAction(todo.id))
+                return API.deleteTodo(todo.id).catch(() => {
+                    dispatch(addTodoAction(todo))
+                    alert('An error occurred, try again')
+                })
+            }
+
+        }
+
+        const thunk = (store) => (next) => (action) => {
+            if (typeof action === 'function') {
+                return action(store.dispatch)
+            }
+
+            return next(action)
         }
 
         const checker = (store) => (next) => (action) => {
@@ -129,10 +149,20 @@
             }
         }
 
+        function loading(state = true, action) {
+            switch (action.type) {
+                case RECEIVE_DATA: RECEIVE_DATA
+                    return false
+                default:
+                    return state
+            }
+        }
+
         const store = Redux.createStore(Redux.combineReducers({
             todos,
-            goals
-        }), Redux.applyMiddleware(checker, logger));
+            goals,
+            loading
+        }), Redux.applyMiddleware(thunk, checker, logger));
 
         function generateId() {
             return Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36);
@@ -164,20 +194,26 @@
                 e.preventDefault()
                 const name = this.input.value
                 this.input.value = ''
-                
-                this.props.store.dispatch(addTodoAction({
-                    id: generateId(),
-                    name,
-                    complete: false
-                }))
+
+                API.saveTodo(name).then((todo) => {
+                    this.props.store.dispatch(addTodoAction(todo))
+                }).catch((todo) => {
+                    this.props.store.dispatch(removeTodoAction(id))
+                    alert("Failed to add item, try again")
+                })
+
             }
 
             removeItem = (todo) => {
-                this.props.store.dispatch(removeTodoAction(todo.id))
+                this.props.store.dispatch(handleDeleteTodo(todo))
             }
 
             toggleItem = (id) => {
                 this.props.store.dispatch(toggleTodoAction(id))
+                API.saveTodoToggle(id).catch(()=>{
+                    this.props.store.dispatch(toggleTodoAction(id))
+                    alert("Could not toggle item, try again")
+                })
             }
 
             render() {
@@ -202,15 +238,18 @@
                 e.preventDefault()
                 const name = this.input.value
                 this.input.value = ''
-
-                this.props.store.dispatch(addGoalAction({
-                    id: generateId(),
-                    name,
-                }))
+                return API.saveGoal(name).then((goal) => {
+                    this.props.store.dispatch(addGoalAction(goal))
+                    this.input.value = ''
+                }).catch(() => alert('There was an error. Try again'))
             }
             
             removeItem = (goal) => {
                 this.props.store.dispatch(removeGoalAction(goal.id))
+                API.deleteGoal(goal.id).catch(()=>{
+                    this.props.store.dispatch(addGoalAction(goal))
+                    alert("failed to delete item, try again")
+                })
             }
 
             render() {
@@ -245,7 +284,11 @@
 
             render() {
                 const { store } = this.props
-                const { todos, goals } = store.getState()
+                const { todos, goals, loading } = store.getState()
+                
+                if (loading === true) {
+                    return <h3>Loading</h3>
+                }
 
                 return (
                     <div>
