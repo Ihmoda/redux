@@ -81,6 +81,29 @@
 
         }
 
+        function handleAddTodo(name, cb) {
+            return (dispatch) => {
+                API.saveTodo(name).then((todo) => {
+                    dispatch(addTodoAction(todo))
+                    cb()
+                }).catch((todo) => {
+                    dispatch(removeTodoAction(todo.id))
+                    alert("Failed to add item, try again")
+                })
+            }
+        }
+
+        function handleToggle(id) {
+            return (dispatch) => {
+                dispatch(toggleTodoAction(id))
+                return API.saveTodoToggle(id).catch(() => {
+                    dispatch(toggleTodoAction(id))
+                    alert("Could not toggle item, try again")
+                })
+
+            }
+        }
+
         function handleDeleteGoal(goal) {
             return (dispatch) => {
                 dispatch(removeGoalAction(goal.id))
@@ -97,6 +120,17 @@
                     dispatch(addGoalAction(goal))
                     cb()
                 }).catch(() => alert('There was an error. Try again'))
+            }
+        }
+
+        function handleInitialData() {
+            return (dispatch) => {
+                Promise.all([
+                    API.fetchTodos(),
+                    API.fetchGoals(),
+                ]).then(([todos, goals]) => {
+                    dispatch(receiveDataAction(todos, goals))
+                })
             }
         }
 
@@ -212,14 +246,10 @@
             addItem = (e) => {
                 e.preventDefault()
                 const name = this.input.value
-                this.input.value = ''
 
-                API.saveTodo(name).then((todo) => {
-                    this.props.store.dispatch(addTodoAction(todo))
-                }).catch((todo) => {
-                    this.props.store.dispatch(removeTodoAction(id))
-                    alert("Failed to add item, try again")
-                })
+                this.props.store.dispatch(handleAddTodo(name, () => {
+                    this.input.value = ''
+                }))
 
             }
 
@@ -228,11 +258,7 @@
             }
 
             toggleItem = (id) => {
-                this.props.store.dispatch(toggleTodoAction(id))
-                API.saveTodoToggle(id).catch(()=>{
-                    this.props.store.dispatch(toggleTodoAction(id))
-                    alert("Could not toggle item, try again")
-                })
+                this.props.store.dispatch(handleToggle(id))
             }
 
             render() {
@@ -282,12 +308,7 @@
             componentDidMount () {
                 const { store } = this.props
 
-                Promise.all([
-                    API.fetchTodos(),
-                    API.fetchGoals(),
-                ]).then(([todos, goals]) => {
-                    store.dispatch(receiveDataAction(todos, goals))
-                })
+                store.dispatch(handleInitialData())
 
                 store.subscribe(() => this.forceUpdate())
             }
